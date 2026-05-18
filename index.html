@@ -225,171 +225,192 @@
     </div>
   </div>
 
-  <script>
-    // ---- 設定の読み書き（localStorage） ----
-    const STORAGE_KEY = "nanobanana_settings";
+<script>
+/* ===========================
+   DOM 要素
+=========================== */
+const settingsBtn = document.getElementById('settings-btn');
+const settingsModal = document.getElementById('settings-modal');
+const closeModalBtn = document.getElementById('close-modal-btn');
+const cancelBtn = document.getElementById('cancel-btn');
+const saveKeyBtn = document.getElementById('save-key-btn');
+const apiKeyField = document.getElementById('api-key');
+const toggleKeyVisibility = document.getElementById('toggle-key-visibility');
 
-    function loadSettings() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return {};
-        return JSON.parse(raw);
-      } catch (e) {
-        console.error("設定の読み込みに失敗しました", e);
-        return {};
-      }
+const promptField = document.getElementById('prompt');
+const sizeField = document.getElementById('size');
+const countField = document.getElementById('count');
+const generateBtn = document.getElementById('generate-btn');
+const gallery = document.getElementById('gallery');
+
+const toast = document.getElementById('toast');
+const toastText = document.getElementById('toast-text');
+
+/* ===========================
+   ローカルストレージから API キー読み込み
+=========================== */
+window.addEventListener('DOMContentLoaded', () => {
+    const savedKey = localStorage.getItem('gemini_api_key');
+    if (savedKey) {
+        apiKeyField.value = savedKey;
+    } else {
+        setTimeout(() => openModal(), 800);
+    }
+});
+
+/* ===========================
+   モーダル制御
+=========================== */
+function openModal() {
+    settingsModal.classList.remove('hidden');
+}
+function closeModal() {
+    settingsModal.classList.add('hidden');
+}
+
+settingsBtn.addEventListener('click', openModal);
+closeModalBtn.addEventListener('click', closeModal);
+cancelBtn.addEventListener('click', closeModal);
+
+/* ===========================
+   API キーの表示切替
+=========================== */
+toggleKeyVisibility.addEventListener('click', () => {
+    const icon = toggleKeyVisibility.querySelector('i');
+    if (apiKeyField.type === 'password') {
+        apiKeyField.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        apiKeyField.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+});
+
+/* ===========================
+   API キー保存
+=========================== */
+saveKeyBtn.addEventListener('click', () => {
+    const key = apiKeyField.value.trim();
+    if (key) {
+        localStorage.setItem('gemini_api_key', key);
+        showToast("APIキーを保存しました！");
+    } else {
+        localStorage.removeItem('gemini_api_key');
+        showToast("APIキーをクリアしました。");
+    }
+    closeModal();
+});
+
+/* ===========================
+   トースト通知
+=========================== */
+function showToast(text) {
+    toastText.innerText = text;
+    toast.classList.remove('hidden');
+    setTimeout(() => toast.classList.add('hidden'), 3000);
+}
+
+/* ===========================
+   画像生成処理（Gemini API）
+=========================== */
+generateBtn.addEventListener('click', generateImage);
+
+async function generateImage() {
+    const apiKey = localStorage.getItem('gemini_api_key');
+    if (!apiKey) {
+        showToast("APIキーが未設定です。設定から入力してください。");
+        openModal();
+        return;
     }
 
-    function saveSettings(settings) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-      } catch (e) {
-        console.error("設定の保存に失敗しました", e);
-      }
+    const prompt = promptField.value.trim();
+    if (!prompt) {
+        showToast("プロンプトを入力してください。");
+        return;
     }
 
-    const settings = loadSettings();
+    const size = sizeField.value;
+    const count = Number(countField.value) || 1;
 
-    // ---- DOM 取得 ----
-    const settingsButton = document.getElementById("settingsButton");
-    const settingsModalBackdrop = document.getElementById("settingsModalBackdrop");
-    const apiKeyInput = document.getElementById("apiKeyInput");
-    const apiEndpointInput = document.getElementById("apiEndpointInput");
-    const saveSettingsButton = document.getElementById("saveSettingsButton");
-    const cancelSettingsButton = document.getElementById("cancelSettingsButton");
+    generateBtn.disabled = true;
+    showToast("画像生成中…");
 
-    const promptEl = document.getElementById("prompt");
-    const sizeEl = document.getElementById("size");
-    const countEl = document.getElementById("count");
-    const generateButton = document.getElementById("generateButton");
-    const statusEl = document.getElementById("status");
-    const galleryEl = document.getElementById("gallery");
+    const url =
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
-    // 初期値を反映
-    apiKeyInput.value = settings.apiKey || "";
-    apiEndpointInput.value = settings.apiEndpoint || "https://api.nanobanana.ai/v1/images/generations";
+    const requestBody = {
+        contents: [
+            {
+                parts: [
+                    {
+                        text: `以下のプロンプトで画像を${count}枚生成してください。\nプロンプト: ${prompt}\nサイズ: ${size}`
+                    }
+                ]
+            }
+        ],
+        generationConfig: {
+            responseMimeType: "image/png"
+        }
+    };
 
-    // ---- 設定モーダルの制御 ----
-    settingsButton.addEventListener("click", () => {
-      settingsModalBackdrop.style.display = "flex";
-    });
-
-    cancelSettingsButton.addEventListener("click", () => {
-      settingsModalBackdrop.style.display = "none";
-    });
-
-    settingsModalBackdrop.addEventListener("click", (e) => {
-      if (e.target === settingsModalBackdrop) {
-        settingsModalBackdrop.style.display = "none";
-      }
-    });
-
-    saveSettingsButton.addEventListener("click", () => {
-      const apiKey = apiKeyInput.value.trim();
-      const apiEndpoint = apiEndpointInput.value.trim();
-      settings.apiKey = apiKey;
-      settings.apiEndpoint = apiEndpoint || "https://api.nanobanana.ai/v1/images/generations";
-      saveSettings(settings);
-      settingsModalBackdrop.style.display = "none";
-    });
-
-    // ---- 画像生成処理 ----
-    async function generateImages() {
-      const prompt = promptEl.value.trim();
-      const size = sizeEl.value;
-      const n = parseInt(countEl.value, 10) || 1;
-      const apiKey = settings.apiKey;
-      const endpoint = settings.apiEndpoint || "https://api.nanobanana.ai/v1/images/generations";
-
-      if (!apiKey) {
-        statusEl.textContent = "API Key が設定されていません。右上の「設定」から入力してください。";
-        return;
-      }
-      if (!prompt) {
-        statusEl.textContent = "プロンプトを入力してください。";
-        return;
-      }
-
-      generateButton.disabled = true;
-      statusEl.textContent = "生成中…";
-
-      try {
-        const res = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + apiKey
-          },
-          body: JSON.stringify({
-            prompt: prompt,
-            n: n,
-            size: size
-            // 必要に応じて model などを追加:
-            // model: "nanobanana-image-1"
-          })
+    try {
+        const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody)
         });
 
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error("API エラー: " + res.status + " " + text);
-        }
-
         const data = await res.json();
-        // data.data[i].url または base64 など、実際のレスポンス仕様に合わせて調整してください
-        // ここでは data.data[].url を想定
-        const images = (data.data || []).map(item => item.url || item.b64_json);
 
-        if (!images.length) {
-          statusEl.textContent = "画像が返されませんでした。";
-          generateButton.disabled = false;
-          return;
+        if (!res.ok) {
+            showToast("エラー: " + data.error.message);
+            generateBtn.disabled = false;
+            return;
         }
 
-        statusEl.textContent = "生成完了";
-        renderImages(images);
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent = "エラーが発生しました: " + err.message;
-      } finally {
-        generateButton.disabled = false;
-      }
-    }
+        const images = data.candidates.map(c => c.content.parts[0].inlineData.data);
 
-    function renderImages(urlsOrBase64) {
-      galleryEl.innerHTML = "";
-      urlsOrBase64.forEach((src) => {
+        renderImages(images);
+        showToast("画像生成が完了しました！");
+
+    } catch (err) {
+        showToast("通信エラーが発生しました。");
+    } finally {
+        generateBtn.disabled = false;
+    }
+}
+
+/* ===========================
+   ギャラリーへ画像表示
+=========================== */
+function renderImages(base64List) {
+    gallery.innerHTML = "";
+
+    base64List.forEach((b64, i) => {
         const card = document.createElement("div");
         card.className = "image-card";
 
         const img = document.createElement("img");
+        img.src = `data:image/png;base64,${b64}`;
 
-        // base64 の場合を簡易判定（"data:" で始まる or かなり長い文字列など）
-        if (src && !src.startsWith("http") && !src.startsWith("data:")) {
-          img.src = "data:image/png;base64," + src;
-        } else {
-          img.src = src;
-        }
-
-        const downloadBtn = document.createElement("button");
-        downloadBtn.textContent = "ダウンロード";
-        downloadBtn.addEventListener("click", () => downloadImage(img.src));
+        const btn = document.createElement("button");
+        btn.innerText = "ダウンロード";
+        btn.addEventListener("click", () => downloadImage(img.src, i));
 
         card.appendChild(img);
-        card.appendChild(downloadBtn);
-        galleryEl.appendChild(card);
-      });
-    }
+        card.appendChild(btn);
+        gallery.appendChild(card);
+    });
+}
 
-    function downloadImage(src) {
-      const a = document.createElement("a");
-      a.href = src;
-      a.download = "nanobanana-image.png";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-
-    generateButton.addEventListener("click", generateImages);
-  </script>
+function downloadImage(src, index) {
+    const a = document.createElement("a");
+    a.href = src;
+    a.download = `gemini_image_${index + 1}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+}
+</script>
 </body>
 </html>

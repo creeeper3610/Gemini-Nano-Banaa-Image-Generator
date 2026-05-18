@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Nanobanana 画像生成</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #111;
+      color: #f5f5f5;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: #181818;
+      border-bottom: 1px solid #333;
+    }
+    header h1 {
+      font-size: 18px;
+      margin: 0;
+    }
+    #settingsButton {
+      background: #333;
+      color: #f5f5f5;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    #settingsButton:hover {
+      background: #444;
+    }
+    main {
+      padding: 16px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 80px;
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #444;
+      background: #1b1b1b;
+      color: #f5f5f5;
+      resize: vertical;
+      font-size: 14px;
+    }
+    select, input[type="number"] {
+      padding: 6px;
+      border-radius: 4px;
+      border: 1px solid #444;
+      background: #1b1b1b;
+      color: #f5f5f5;
+      font-size: 14px;
+    }
+    #controls {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    #generateButton {
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    #generateButton:disabled {
+      background: #333;
+      cursor: not-allowed;
+    }
+    #status {
+      margin-top: 10px;
+      font-size: 13px;
+      min-height: 18px;
+      color: #ccc;
+    }
+    #gallery {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .image-card {
+      background: #181818;
+      border-radius: 6px;
+      padding: 8px;
+      border: 1px solid #333;
+    }
+    .image-card img {
+      width: 100%;
+      border-radius: 4px;
+      display: block;
+    }
+    .image-card button {
+      margin-top: 6px;
+      width: 100%;
+      padding: 6px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      background: #333;
+      color: #f5f5f5;
+    }
+    .image-card button:hover {
+      background: #444;
+    }
+
+    /* 設定モーダル */
+    #settingsModalBackdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    #settingsModal {
+      background: #181818;
+      border-radius: 8px;
+      padding: 16px;
+      width: 320px;
+      border: 1px solid #333;
+    }
+    #settingsModal h2 {
+      margin-top: 0;
+      font-size: 16px;
+    }
+    #settingsModal input[type="text"] {
+      width: 100%;
+      padding: 6px;
+      border-radius: 4px;
+      border: 1px solid #444;
+      background: #1b1b1b;
+      color: #f5f5f5;
+      font-size: 14px;
+    }
+    #settingsModalFooter {
+      margin-top: 12px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    #settingsModalFooter button {
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    #saveSettingsButton {
+      background: #4f46e5;
+      color: #fff;
+    }
+    #cancelSettingsButton {
+      background: #333;
+      color: #f5f5f5;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Nanobanana 画像生成</h1>
+    <button id="settingsButton">設定</button>
+  </header>
+
+  <main>
+    <section>
+      <label for="prompt">プロンプト</label>
+      <textarea id="prompt" placeholder="生成したい画像の説明を書いてください"></textarea>
+
+      <div id="controls">
+        <div>
+          <label for="size">サイズ</label>
+          <select id="size">
+            <option value="512x512">512 x 512</option>
+            <option value="768x768">768 x 768</option>
+            <option value="1024x1024" selected>1024 x 1024</option>
+          </select>
+        </div>
+        <div>
+          <label for="count">枚数</label>
+          <input id="count" type="number" min="1" max="4" value="1" />
+        </div>
+        <button id="generateButton">画像を生成</button>
+      </div>
+
+      <div id="status"></div>
+    </section>
+
+    <section id="gallery"></section>
+  </main>
+
+  <!-- 設定モーダル -->
+  <div id="settingsModalBackdrop">
+    <div id="settingsModal">
+      <h2>API 設定</h2>
+      <label for="apiKeyInput">Nanobanana API Key</label>
+      <input id="apiKeyInput" type="text" placeholder="sk-..." />
+
+      <label for="apiEndpointInput" style="margin-top:10px; display:block;">API エンドポイント</label>
+      <input id="apiEndpointInput" type="text" placeholder="https://api.nanobanana.ai/v1/images/generations" />
+
+      <div id="settingsModalFooter">
+        <button id="cancelSettingsButton">キャンセル</button>
+        <button id="saveSettingsButton">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---- 設定の読み書き（localStorage） ----
+    const STORAGE_KEY = "nanobanana_settings";
+
+    function loadSettings() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return {};
+        return JSON.parse(raw);
+      } catch (e) {
+        console.error("設定の読み込みに失敗しました", e);
+        return {};
+      }
+    }
+
+    function saveSettings(settings) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+      } catch (e) {
+        console.error("設定の保存に失敗しました", e);
+      }
+    }
+
+    const settings = loadSettings();
+
+    // ---- DOM 取得 ----
+    const settingsButton = document.getElementById("settingsButton");
+    const settingsModalBackdrop = document.getElementById("settingsModalBackdrop");
+    const apiKeyInput = document.getElementById("apiKeyInput");
+    const apiEndpointInput = document.getElementById("apiEndpointInput");
+    const saveSettingsButton = document.getElementById("saveSettingsButton");
+    const cancelSettingsButton = document.getElementById("cancelSettingsButton");
+
+    const promptEl = document.getElementById("prompt");
+    const sizeEl = document.getElementById("size");
+    const countEl = document.getElementById("count");
+    const generateButton = document.getElementById("generateButton");
+    const statusEl = document.getElementById("status");
+    const galleryEl = document.getElementById("gallery");
+
+    // 初期値を反映
+    apiKeyInput.value = settings.apiKey || "";
+    apiEndpointInput.value = settings.apiEndpoint || "https://api.nanobanana.ai/v1/images/generations";
+
+    // ---- 設定モーダルの制御 ----
+    settingsButton.addEventListener("click", () => {
+      settingsModalBackdrop.style.display = "flex";
+    });
+
+    cancelSettingsButton.addEventListener("click", () => {
+      settingsModalBackdrop.style.display = "none";
+    });
+
+    settingsModalBackdrop.addEventListener("click", (e) => {
+      if (e.target === settingsModalBackdrop) {
+        settingsModalBackdrop.style.display = "none";
+      }
+    });
+
+    saveSettingsButton.addEventListener("click", () => {
+      const apiKey = apiKeyInput.value.trim();
+      const apiEndpoint = apiEndpointInput.value.trim();
+      settings.apiKey = apiKey;
+      settings.apiEndpoint = apiEndpoint || "https://api.nanobanana.ai/v1/images/generations";
+      saveSettings(settings);
+      settingsModalBackdrop.style.display = "none";
+    });
+
+    // ---- 画像生成処理 ----
+    async function generateImages() {
+      const prompt = promptEl.value.trim();
+      const size = sizeEl.value;
+      const n = parseInt(countEl.value, 10) || 1;
+      const apiKey = settings.apiKey;
+      const endpoint = settings.apiEndpoint || "https://api.nanobanana.ai/v1/images/generations";
+
+      if (!apiKey) {
+        statusEl.textContent = "API Key が設定されていません。右上の「設定」から入力してください。";
+        return;
+      }
+      if (!prompt) {
+        statusEl.textContent = "プロンプトを入力してください。";
+        return;
+      }
+
+      generateButton.disabled = true;
+      statusEl.textContent = "生成中…";
+
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + apiKey
+          },
+          body: JSON.stringify({
+            prompt: prompt,
+            n: n,
+            size: size
+            // 必要に応じて model などを追加:
+            // model: "nanobanana-image-1"
+          })
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error("API エラー: " + res.status + " " + text);
+        }
+
+        const data = await res.json();
+        // data.data[i].url または base64 など、実際のレスポンス仕様に合わせて調整してください
+        // ここでは data.data[].url を想定
+        const images = (data.data || []).map(item => item.url || item.b64_json);
+
+        if (!images.length) {
+          statusEl.textContent = "画像が返されませんでした。";
+          generateButton.disabled = false;
+          return;
+        }
+
+        statusEl.textContent = "生成完了";
+        renderImages(images);
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "エラーが発生しました: " + err.message;
+      } finally {
+        generateButton.disabled = false;
+      }
+    }
+
+    function renderImages(urlsOrBase64) {
+      galleryEl.innerHTML = "";
+      urlsOrBase64.forEach((src) => {
+        const card = document.createElement("div");
+        card.className = "image-card";
+
+        const img = document.createElement("img");
+
+        // base64 の場合を簡易判定（"data:" で始まる or かなり長い文字列など）
+        if (src && !src.startsWith("http") && !src.startsWith("data:")) {
+          img.src = "data:image/png;base64," + src;
+        } else {
+          img.src = src;
+        }
+
+        const downloadBtn = document.createElement("button");
+        downloadBtn.textContent = "ダウンロード";
+        downloadBtn.addEventListener("click", () => downloadImage(img.src));
+
+        card.appendChild(img);
+        card.appendChild(downloadBtn);
+        galleryEl.appendChild(card);
+      });
+    }
+
+    function downloadImage(src) {
+      const a = document.createElement("a");
+      a.href = src;
+      a.download = "nanobanana-image.png";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    generateButton.addEventListener("click", generateImages);
+  </script>
+</body>
+</html>

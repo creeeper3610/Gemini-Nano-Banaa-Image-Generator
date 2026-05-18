@@ -1,344 +1,305 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>Nanobanana 画像生成</title>
-  <style>
+<meta charset="UTF-8">
+<title>Gemini 画像生成</title>
+<style>
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #111;
-      color: #f5f5f5;
+        margin: 0;
+        background: #111;
+        color: #eee;
+        font-family: system-ui, sans-serif;
     }
     header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 16px;
-      background: #181818;
-      border-bottom: 1px solid #333;
+        background: #181818;
+        padding: 12px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #333;
     }
     header h1 {
-      font-size: 18px;
-      margin: 0;
+        margin: 0;
+        font-size: 18px;
     }
-    #settingsButton {
-      background: #333;
-      color: #f5f5f5;
-      border: none;
-      border-radius: 4px;
-      padding: 6px 10px;
-      cursor: pointer;
-      font-size: 13px;
+    button {
+        cursor: pointer;
     }
-    #settingsButton:hover {
-      background: #444;
+    #settings-btn {
+        background: #333;
+        color: #eee;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
     }
+    #settings-btn:hover {
+        background: #444;
+    }
+
     main {
-      padding: 16px;
-      max-width: 900px;
-      margin: 0 auto;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
     }
+
     label {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 14px;
+        display: block;
+        margin-bottom: 6px;
+        font-size: 14px;
     }
-    textarea {
-      width: 100%;
-      min-height: 80px;
-      padding: 8px;
-      border-radius: 4px;
-      border: 1px solid #444;
-      background: #1b1b1b;
-      color: #f5f5f5;
-      resize: vertical;
-      font-size: 14px;
+
+    textarea, select, input[type="number"] {
+        width: 100%;
+        padding: 8px;
+        background: #1b1b1b;
+        border: 1px solid #444;
+        border-radius: 4px;
+        color: #eee;
+        font-size: 14px;
     }
-    select, input[type="number"] {
-      padding: 6px;
-      border-radius: 4px;
-      border: 1px solid #444;
-      background: #1b1b1b;
-      color: #f5f5f5;
-      font-size: 14px;
-    }
+
     #controls {
-      margin-top: 10px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
+        margin-top: 12px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
     }
-    #generateButton {
-      background: #4f46e5;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      padding: 8px 16px;
-      cursor: pointer;
-      font-size: 14px;
+
+    #generate-btn {
+        background: #4f46e5;
+        color: #fff;
+        border: none;
+        padding: 10px 18px;
+        border-radius: 4px;
+        font-size: 14px;
     }
-    #generateButton:disabled {
-      background: #333;
-      cursor: not-allowed;
+    #generate-btn:disabled {
+        background: #333;
+        cursor: not-allowed;
     }
-    #status {
-      margin-top: 10px;
-      font-size: 13px;
-      min-height: 18px;
-      color: #ccc;
-    }
+
     #gallery {
-      margin-top: 20px;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 16px;
+        margin-top: 24px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 16px;
     }
+
     .image-card {
-      background: #181818;
-      border-radius: 6px;
-      padding: 8px;
-      border: 1px solid #333;
+        background: #181818;
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid #333;
     }
     .image-card img {
-      width: 100%;
-      border-radius: 4px;
-      display: block;
+        width: 100%;
+        border-radius: 4px;
     }
     .image-card button {
-      margin-top: 6px;
-      width: 100%;
-      padding: 6px;
-      border-radius: 4px;
-      border: none;
-      cursor: pointer;
-      font-size: 13px;
-      background: #333;
-      color: #f5f5f5;
+        margin-top: 8px;
+        width: 100%;
+        padding: 6px;
+        background: #333;
+        color: #eee;
+        border: none;
+        border-radius: 4px;
     }
     .image-card button:hover {
-      background: #444;
+        background: #444;
     }
 
-    /* 設定モーダル */
-    #settingsModalBackdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.6);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
+    /* モーダル */
+    #settings-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
     }
-    #settingsModal {
-      background: #181818;
-      border-radius: 8px;
-      padding: 16px;
-      width: 320px;
-      border: 1px solid #333;
+    #settings-modal .modal-content {
+        background: #181818;
+        padding: 20px;
+        width: 320px;
+        border-radius: 8px;
+        border: 1px solid #333;
     }
-    #settingsModal h2 {
-      margin-top: 0;
-      font-size: 16px;
+    #settings-modal h2 {
+        margin-top: 0;
+        font-size: 16px;
     }
-    #settingsModal input[type="text"] {
-      width: 100%;
-      padding: 6px;
-      border-radius: 4px;
-      border: 1px solid #444;
-      background: #1b1b1b;
-      color: #f5f5f5;
-      font-size: 14px;
+    #settings-modal input {
+        width: 100%;
+        padding: 8px;
+        background: #1b1b1b;
+        border: 1px solid #444;
+        border-radius: 4px;
+        color: #eee;
+        margin-bottom: 12px;
     }
-    #settingsModalFooter {
-      margin-top: 12px;
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
+    #settings-modal .footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
     }
-    #settingsModalFooter button {
-      padding: 6px 10px;
-      border-radius: 4px;
-      border: none;
-      cursor: pointer;
-      font-size: 13px;
+    #toast {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        padding: 12px 20px;
+        border-radius: 6px;
+        color: #eee;
+        display: none;
     }
-    #saveSettingsButton {
-      background: #4f46e5;
-      color: #fff;
-    }
-    #cancelSettingsButton {
-      background: #333;
-      color: #f5f5f5;
-    }
-  </style>
+</style>
 </head>
 <body>
-  <header>
-    <h1>Nanobanana 画像生成</h1>
-    <button id="settingsButton">設定</button>
-  </header>
 
-  <main>
-    <section>
-      <label for="prompt">プロンプト</label>
-      <textarea id="prompt" placeholder="生成したい画像の説明を書いてください"></textarea>
+<header>
+    <h1>Gemini 画像生成</h1>
+    <button id="settings-btn">設定</button>
+</header>
 
-      <div id="controls">
-        <div>
-          <label for="size">サイズ</label>
-          <select id="size">
-            <option value="512x512">512 x 512</option>
-            <option value="768x768">768 x 768</option>
-            <option value="1024x1024" selected>1024 x 1024</option>
-          </select>
+<main>
+    <label>プロンプト</label>
+    <textarea id="prompt" placeholder="生成したい画像の説明を書いてください"></textarea>
+
+    <div id="controls">
+        <div style="flex:1;">
+            <label>サイズ</label>
+            <select id="size">
+                <option value="512x512">512×512</option>
+                <option value="768x768">768×768</option>
+                <option value="1024x1024" selected>1024×1024</option>
+            </select>
         </div>
-        <div>
-          <label for="count">枚数</label>
-          <input id="count" type="number" min="1" max="4" value="1" />
+
+        <div style="width:120px;">
+            <label>枚数</label>
+            <input id="count" type="number" min="1" max="4" value="1">
         </div>
-        <button id="generateButton">画像を生成</button>
-      </div>
 
-      <div id="status"></div>
-    </section>
-
-    <section id="gallery"></section>
-  </main>
-
-  <!-- 設定モーダル -->
-  <div id="settingsModalBackdrop">
-    <div id="settingsModal">
-      <h2>API 設定</h2>
-      <label for="apiKeyInput">Nanobanana API Key</label>
-      <input id="apiKeyInput" type="text" placeholder="sk-..." />
-
-      <label for="apiEndpointInput" style="margin-top:10px; display:block;">API エンドポイント</label>
-      <input id="apiEndpointInput" type="text" placeholder="https://api.nanobanana.ai/v1/images/generations" />
-
-      <div id="settingsModalFooter">
-        <button id="cancelSettingsButton">キャンセル</button>
-        <button id="saveSettingsButton">保存</button>
-      </div>
+        <button id="generate-btn">画像を生成</button>
     </div>
-  </div>
+
+    <div id="gallery"></div>
+</main>
+
+<!-- 設定モーダル -->
+<div id="settings-modal">
+    <div class="modal-content">
+        <h2>API 設定</h2>
+        <label>Gemini API Key</label>
+        <input id="api-key" type="password" placeholder="sk-xxxx">
+
+        <div class="footer">
+            <button id="cancel-btn">キャンセル</button>
+            <button id="save-key-btn">保存</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
 
 <script>
 /* ===========================
-   DOM 要素
+   DOM
 =========================== */
-const settingsBtn = document.getElementById('settings-btn');
-const settingsModal = document.getElementById('settings-modal');
-const closeModalBtn = document.getElementById('close-modal-btn');
-const cancelBtn = document.getElementById('cancel-btn');
-const saveKeyBtn = document.getElementById('save-key-btn');
-const apiKeyField = document.getElementById('api-key');
-const toggleKeyVisibility = document.getElementById('toggle-key-visibility');
+const settingsBtn = document.getElementById("settings-btn");
+const settingsModal = document.getElementById("settings-modal");
+const cancelBtn = document.getElementById("cancel-btn");
+const saveKeyBtn = document.getElementById("save-key-btn");
+const apiKeyField = document.getElementById("api-key");
 
-const promptField = document.getElementById('prompt');
-const sizeField = document.getElementById('size');
-const countField = document.getElementById('count');
-const generateBtn = document.getElementById('generate-btn');
-const gallery = document.getElementById('gallery');
+const promptField = document.getElementById("prompt");
+const sizeField = document.getElementById("size");
+const countField = document.getElementById("count");
+const generateBtn = document.getElementById("generate-btn");
+const gallery = document.getElementById("gallery");
 
-const toast = document.getElementById('toast');
-const toastText = document.getElementById('toast-text');
+const toast = document.getElementById("toast");
 
 /* ===========================
-   ローカルストレージから API キー読み込み
+   初期ロード
 =========================== */
-window.addEventListener('DOMContentLoaded', () => {
-    const savedKey = localStorage.getItem('gemini_api_key');
+window.addEventListener("DOMContentLoaded", () => {
+    const savedKey = localStorage.getItem("gemini_api_key");
     if (savedKey) {
         apiKeyField.value = savedKey;
     } else {
-        setTimeout(() => openModal(), 800);
+        setTimeout(() => openModal(), 600);
     }
 });
 
 /* ===========================
-   モーダル制御
+   モーダル
 =========================== */
 function openModal() {
-    settingsModal.classList.remove('hidden');
+    settingsModal.style.display = "flex";
 }
 function closeModal() {
-    settingsModal.classList.add('hidden');
+    settingsModal.style.display = "none";
 }
 
-settingsBtn.addEventListener('click', openModal);
-closeModalBtn.addEventListener('click', closeModal);
-cancelBtn.addEventListener('click', closeModal);
+settingsBtn.addEventListener("click", openModal);
+cancelBtn.addEventListener("click", closeModal);
 
 /* ===========================
-   API キーの表示切替
+   APIキー保存
 =========================== */
-toggleKeyVisibility.addEventListener('click', () => {
-    const icon = toggleKeyVisibility.querySelector('i');
-    if (apiKeyField.type === 'password') {
-        apiKeyField.type = 'text';
-        icon.classList.replace('fa-eye', 'fa-eye-slash');
-    } else {
-        apiKeyField.type = 'password';
-        icon.classList.replace('fa-eye-slash', 'fa-eye');
-    }
-});
-
-/* ===========================
-   API キー保存
-=========================== */
-saveKeyBtn.addEventListener('click', () => {
+saveKeyBtn.addEventListener("click", () => {
     const key = apiKeyField.value.trim();
     if (key) {
-        localStorage.setItem('gemini_api_key', key);
-        showToast("APIキーを保存しました！");
+        localStorage.setItem("gemini_api_key", key);
+        showToast("APIキーを保存しました");
     } else {
-        localStorage.removeItem('gemini_api_key');
-        showToast("APIキーをクリアしました。");
+        localStorage.removeItem("gemini_api_key");
+        showToast("APIキーを削除しました");
     }
     closeModal();
 });
 
 /* ===========================
-   トースト通知
+   トースト
 =========================== */
 function showToast(text) {
-    toastText.innerText = text;
-    toast.classList.remove('hidden');
-    setTimeout(() => toast.classList.add('hidden'), 3000);
+    toast.innerText = text;
+    toast.style.display = "block";
+    setTimeout(() => toast.style.display = "none", 2500);
 }
 
 /* ===========================
-   画像生成処理（Gemini API）
+   画像生成
 =========================== */
-generateBtn.addEventListener('click', generateImage);
+generateBtn.addEventListener("click", generateImage);
 
 async function generateImage() {
-    const apiKey = localStorage.getItem('gemini_api_key');
+    const apiKey = localStorage.getItem("gemini_api_key");
     if (!apiKey) {
-        showToast("APIキーが未設定です。設定から入力してください。");
+        showToast("APIキーが未設定です");
         openModal();
         return;
     }
 
     const prompt = promptField.value.trim();
     if (!prompt) {
-        showToast("プロンプトを入力してください。");
+        showToast("プロンプトを入力してください");
         return;
     }
 
     const size = sizeField.value;
-    const count = Number(countField.value) || 1;
+    const count = Number(countField.value);
 
     generateBtn.disabled = true;
-    showToast("画像生成中…");
+    showToast("生成中…");
 
     const url =
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
-    const requestBody = {
+    const body = {
         contents: [
             {
                 parts: [
@@ -356,8 +317,8 @@ async function generateImage() {
     try {
         const res = await fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(requestBody)
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(body)
         });
 
         const data = await res.json();
@@ -371,22 +332,22 @@ async function generateImage() {
         const images = data.candidates.map(c => c.content.parts[0].inlineData.data);
 
         renderImages(images);
-        showToast("画像生成が完了しました！");
+        showToast("生成完了");
 
-    } catch (err) {
-        showToast("通信エラーが発生しました。");
+    } catch (e) {
+        showToast("通信エラー");
     } finally {
         generateBtn.disabled = false;
     }
 }
 
 /* ===========================
-   ギャラリーへ画像表示
+   ギャラリー表示
 =========================== */
-function renderImages(base64List) {
+function renderImages(list) {
     gallery.innerHTML = "";
 
-    base64List.forEach((b64, i) => {
+    list.forEach((b64, i) => {
         const card = document.createElement("div");
         card.className = "image-card";
 
@@ -407,10 +368,9 @@ function downloadImage(src, index) {
     const a = document.createElement("a");
     a.href = src;
     a.download = `gemini_image_${index + 1}.png`;
-    document.body.appendChild(a);
     a.click();
-    a.remove();
 }
 </script>
+
 </body>
 </html>
